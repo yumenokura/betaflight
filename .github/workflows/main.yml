@@ -1,0 +1,32 @@
+name: Build BETAFPVG473
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout led-aux8
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache toolchain
+        uses: actions/cache@v4
+        with:
+          path: tools
+          key: ${{ runner.os }}-betaflight-toolchain-${{ hashFiles('mk/tools.mk') }}
+
+      - name: Install ARM toolchain
+        run: make arm_sdk_install
+
+      - name: Build BETAFPVG473
+        run: make TARGET=BETAFPVG473
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: BETAFPVG473-led-aux8
+          path: obj/*.hex
