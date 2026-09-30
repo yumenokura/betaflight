@@ -17,10 +17,10 @@ jobs:
       - name: Install ARM toolchain
         run: make arm_sdk_install
       - name: Clone Betaflight config
-        run: git clone https://github.com/betaflight/config.git
+        run: make configs
 
       - name: Build BETAFPVG473
-        run: make CONFIG=config/configs/BETAFPVG473/config.h
+        run: make CONFIG=BEFH/BETAFPVG473
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
