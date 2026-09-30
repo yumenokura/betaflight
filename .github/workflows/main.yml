@@ -18,6 +18,7 @@ jobs:
         run: make arm_sdk_install
       - name: Clone Betaflight config
         run: make configs
+      - run: mkdir -p obj/main/betaflight_STM32G474_BEFH
 
       - name: Build BETAFPVG473
         run: make CONFIG=BEFH/BETAFPVG473
