@@ -19,6 +19,7 @@ jobs:
       - name: Clone Betaflight config
         run: make configs
       - run: mkdir -p obj/main/betaflight_STM32G474_BEFH
+      - run: mkdir -p obj/betaflight_2026.6.2_STM32G474_BEFH
 
       - name: Build BETAFPVG473
         run: make CONFIG=BEFH/BETAFPVG473
