@@ -28,4 +28,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: BETAFPVG473-led-aux8
-          path: obj/*.hex
+          path: obj/betaflight_2026.6.2_STM32G474_BEFH/*.hex
