@@ -13,15 +13,13 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Cache toolchain
-        uses: actions/cache@v4
-        with:
-          path: tools
-          key: ${{ runner.os }}-betaflight-toolchain-${{ hashFiles('mk/tools.mk') }}
 
       - name: Install ARM toolchain
         run: make arm_sdk_install
-
+      - name: Clone Betaflight config
+        run: make configs
+      - run: mkdir -p obj/main/betaflight_STM32G474_BEFH
+      - run: mkdir -p obj/betaflight_2026.6.2_STM32G474_BEFH
       - name: Build BETAFPVG473
         run: make CONFIG=BEFH/BETAFPVG473
 
@@ -29,4 +27,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: BETAFPVG473-led-aux8
-          path: obj/*.hex
+          path: obj/betaflight_2026.6.2_STM32G474_BEFH/*.hex
