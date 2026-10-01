@@ -624,8 +624,7 @@ static void applyLedFixedLayers(void)
             color = ledStripStatusModeConfig()->colors[ledGetColor(ledConfig)];
 
            if (ledGetOverlayBit(ledConfig, LED_OVERLAY_THROTTLE)) {
-    const int auxInput = rcData[AUX8];
-
+    const int auxInput = 1000;
     if (auxInput < 1122) {
         color = HSV(RED);
     } else if (auxInput < 1373) {
