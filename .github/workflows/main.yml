@@ -21,7 +21,7 @@ jobs:
       - run: mkdir -p obj/main/betaflight_STM32G474_BEFH
       - run: mkdir -p obj/betaflight_2026.6.2_STM32G474_BEFH
       - name: Build BETAFPVG473
-        run: make CONFIG=BEFH/BETAFPVG473
+        run: make CONFIG=BEFH/BETAFPVG473 EXTRA_FLAGS="-DUSE_LED_STRIP -DUSE_LED_STRIP_64"
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
