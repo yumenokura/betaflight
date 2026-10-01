@@ -23,7 +23,7 @@ jobs:
         run: make arm_sdk_install
 
       - name: Build BETAFPVG473
-        run: make CONFIG=config/configs/BETAFPVG473/config.h
+        run: make CONFIG=BEFH/BETAFPVG473
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
