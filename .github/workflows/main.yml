@@ -1,0 +1,33 @@
+name: Build BETAFPVG473 Champion BMI270 LED64
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout champion-bmi270-led64
+        uses: actions/checkout@v4
+        with:
+          ref: champion-bmi270-led64
+          submodules: recursive
+
+      - name: Install ARM toolchain
+        run: make arm_sdk_install
+
+      - name: Clone Betaflight config
+        run: make configs
+
+      - run: mkdir -p obj/main/betaflight_STM32G474_BEFH
+      - run: mkdir -p obj/betaflight_2026.6.0_STM32G474_BEFH
+
+      - name: Build BETAFPVG473_V2
+        run: make CONFIG=BEFH/BETAFPVG473_V2 EXTRA_FLAGS="-DUSE_LED_STRIP -DUSE_LED_STRIP_64"
+
+      - name: Upload HEX
+        uses: actions/upload-artifact@v4
+        with:
+          name: BETAFPVG473_V2-Champion-BMI270-LED64
+          path: obj/betaflight_2026.6.0_STM32G474_BEFH/*.hex
