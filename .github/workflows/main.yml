@@ -24,7 +24,7 @@ jobs:
       - run: mkdir -p obj/betaflight_2026.6.0_STM32G474_BEFH
 
       - name: Build BETAFPVG473_V2
-        run: make CONFIG=BEFH/BETAFPVG473_V2 EXTRA_FLAGS="-DUSE_LED_STRIP -DUSE_LED_STRIP_64"
+        run: make CONFIG=BETAFPVG473_V2 EXTRA_FLAGS="-DUSE_LED_STRIP -DUSE_LED_STRIP_64"
 
       - name: Upload HEX
         uses: actions/upload-artifact@v4
