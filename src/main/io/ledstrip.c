@@ -566,22 +566,19 @@ static void applyLedFixedLayers(void)
         case LED_FUNCTION_COLOR:
             color = ledStripStatusModeConfig()->colors[ledGetColor(ledConfig)];
 
-            hsvColor_t nextColor = ledStripStatusModeConfig()->colors[(ledGetColor(ledConfig) + 1 + LED_CONFIGURABLE_COLOR_COUNT) % LED_CONFIGURABLE_COLOR_COUNT];
-            hsvColor_t previousColor = ledStripStatusModeConfig()->colors[(ledGetColor(ledConfig) - 1 + LED_CONFIGURABLE_COLOR_COUNT) % LED_CONFIGURABLE_COLOR_COUNT];
+            if (ledGetOverlayBit(ledConfig, LED_OVERLAY_THROTTLE)) {
+    const int auxInput = rcData[AUX8];
 
-            if (ledGetOverlayBit(ledConfig, LED_OVERLAY_THROTTLE)) {   //smooth fade with selected Aux channel of all HSV values from previousColor through color to nextColor
-                const int auxInput = rcData[ledStripStatusModeConfig()->ledstrip_aux_channel];
-                int centerPWM = (PWM_RANGE_MIN + PWM_RANGE_MAX) / 2;
-                if (auxInput < centerPWM) {
-                    color.h = scaleRange(auxInput, PWM_RANGE_MIN, centerPWM, previousColor.h, color.h);
-                    color.s = scaleRange(auxInput, PWM_RANGE_MIN, centerPWM, previousColor.s, color.s);
-                    color.v = scaleRange(auxInput, PWM_RANGE_MIN, centerPWM, previousColor.v, color.v);
-                } else {
-                    color.h = scaleRange(auxInput, centerPWM, PWM_RANGE_MAX, color.h, nextColor.h);
-                    color.s = scaleRange(auxInput, centerPWM, PWM_RANGE_MAX, color.s, nextColor.s);
-                    color.v = scaleRange(auxInput, centerPWM, PWM_RANGE_MAX, color.v, nextColor.v);
-                }
-            }
+    if (auxInput < 1122) {
+        color = HSV(RED);
+    } else if (auxInput < 1373) {
+        color = HSV(YELLOW);
+    } else if (auxInput < 1752) {
+        color = HSV(GREEN);
+    } else {
+        color = HSV(BLUE);
+    }
+}
 
             break;
 
