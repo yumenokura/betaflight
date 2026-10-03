@@ -30,4 +30,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: BETAFPVG473_V2-Champion-BMI270-LED64
-          path: obj/betaflight_2026.6.0-alpha_STM32G47X_BETAFPVG473_V2/*.hex
+          path: obj/betaflight_2026.6.0-alpha_STM32G47X_BETAFPVG473_V2.hex
