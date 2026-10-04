@@ -264,7 +264,10 @@ static void bmi270Config(gyroDev_t *gyro)
 
     // Enable the gyro, accelerometer and temperature sensor - disable aux interface
     bmi270RegisterWrite(dev, BMI270_REG_PWR_CTRL, BMI270_VAL_PWR_CTRL, 1);
-
+    DEBUG_SET(DEBUG_GYRO_RAW, 0, bmi270RegisterRead(dev, BMI270_REG_PWR_CTRL));
+    DEBUG_SET(DEBUG_GYRO_RAW, 1, bmi270RegisterRead(dev, BMI270_REG_GYR_CONF));
+    DEBUG_SET(DEBUG_GYRO_RAW, 2, bmi270RegisterRead(dev, BMI270_REG_GYR_RANGE));
+    DEBUG_SET(DEBUG_GYRO_RAW, 3, bmi270RegisterRead(dev, BMI270_REG_INTERNAL_STATUS));
     // Flush the FIFO
     if (fifoMode) {
         bmi270RegisterWrite(dev, BMI270_REG_CMD, BMI270_VAL_CMD_FIFOFLUSH, 1);
