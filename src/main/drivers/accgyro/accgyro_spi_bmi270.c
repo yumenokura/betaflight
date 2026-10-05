@@ -455,6 +455,10 @@ static bool bmi270GyroReadRegister(gyroDev_t *gyro)
         break;
     }
 
+        DEBUG_SET(DEBUG_BMI270_REGS, 0, bmi270RegisterRead(dev, BMI270_REG_PWR_CTRL));
+    DEBUG_SET(DEBUG_BMI270_REGS, 1, bmi270RegisterRead(dev, BMI270_REG_GYRO_CONF));
+    DEBUG_SET(DEBUG_BMI270_REGS, 2, bmi270RegisterRead(dev, BMI270_REG_GYRO_RANGE));
+    DEBUG_SET(DEBUG_BMI270_REGS, 3, bmi270RegisterRead(dev, BMI270_REG_INTERNAL_STATUS));
     return true;
 }
 
