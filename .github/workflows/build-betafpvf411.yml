@@ -1,0 +1,43 @@
+
+name: Build BETAFPVF411 BMI270 Fix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build BETAFPVF411
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Cache build toolchain
+        uses: actions/cache@v4
+        id: cache-toolchain
+        with:
+          path: tools
+          key: ${{ runner.os }}-${{ hashFiles('mk/tools.mk') }}
+
+      - name: Install ARM toolchain
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+        run: make arm_sdk_install
+
+      - name: Hydrate configuration
+        run: make configs
+
+      - name: Build BETAFPVF411
+        run: make EXTRA_FLAGS=-Werror BETAFPVF411
+
+      - name: Upload BETAFPVF411 firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: BETAFPVF411-BMI270-FIX
+          path: |
+            obj/*.hex
+            obj/*_BETAFPVF411*
+          if-no-files-found: error
+          retention-days: 60
