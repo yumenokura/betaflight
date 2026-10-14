@@ -275,6 +275,12 @@ static void bmi270Config(gyroDev_t *gyro)
     }
 }
 
+// Decode an unaligned little-endian sensor word.
+static int16_t bmi270ReadS16(const uint8_t *p)
+{
+    return (int16_t)((uint16_t)p[0] | ((uint16_t)p[1] << 8));
+}
+
 extiCallbackRec_t bmi270IntCallbackRec;
 
 /*
@@ -292,6 +298,15 @@ static busStatus_e bmi270Intcallback(uintptr_t arg)
         gyro->gyroDmaMaxDuration = gyroDmaDuration;
     }
 
+    // Publish only complete RX DMA frames. No reader touches the active RX buffer.
+    const uint8_t *rx = gyro->dev.rxBuf;
+    gyro->bmi270DmaSample[0] = bmi270ReadS16(rx + 2);
+    gyro->bmi270DmaSample[1] = bmi270ReadS16(rx + 4);
+    gyro->bmi270DmaSample[2] = bmi270ReadS16(rx + 6);
+    gyro->bmi270DmaSample[3] = bmi270ReadS16(rx + 8);
+    gyro->bmi270DmaSample[4] = bmi270ReadS16(rx + 10);
+    gyro->bmi270DmaSample[5] = bmi270ReadS16(rx + 12);
+    __DMB();
     gyro->dataReady = true;
 
     return BUS_READY;
@@ -359,14 +374,13 @@ static bool bmi270AccRead(accDev_t *acc)
 
     case GYRO_EXTI_INT_DMA:
     {
-        // If read was triggered in interrupt don't bother waiting. The worst that could happen is that we pick
-        // up an old value.
-
-        // This data was read from the gyro, which is the same SPI device as the acc
-        int16_t *accData = (int16_t *)dev->rxBuf;
-        acc->ADCRaw[X] = accData[1];
-        acc->ADCRaw[Y] = accData[2];
-        acc->ADCRaw[Z] = accData[3];
+        // Read the last completed DMA frame, not the active DMA RX buffer.
+        const uint32_t irqMask = __get_PRIMASK();
+        __disable_irq();
+        acc->ADCRaw[X] = acc->gyro->bmi270DmaSample[0];
+        acc->ADCRaw[Y] = acc->gyro->bmi270DmaSample[1];
+        acc->ADCRaw[Z] = acc->gyro->bmi270DmaSample[2];
+        __set_PRIMASK(irqMask);
         break;
     }
 
@@ -443,11 +457,17 @@ static bool bmi270GyroReadRegister(gyroDev_t *gyro)
 
     case GYRO_EXTI_INT_DMA:
     {
-        // If read was triggered in interrupt don't bother waiting. The worst that could happen is that we pick
-        // up an old value.
-        gyro->gyroADCRaw[X] = gyroData[4];
-        gyro->gyroADCRaw[Y] = gyroData[5];
-        gyro->gyroADCRaw[Z] = gyroData[6];
+        // Do not consume an incomplete DMA frame.
+        const uint32_t irqMask = __get_PRIMASK();
+        __disable_irq();
+        if (!gyro->dataReady) {
+            __set_PRIMASK(irqMask);
+            return false;
+        }
+        gyro->gyroADCRaw[X] = gyro->bmi270DmaSample[3];
+        gyro->gyroADCRaw[Y] = gyro->bmi270DmaSample[4];
+        gyro->gyroADCRaw[Z] = gyro->bmi270DmaSample[5];
+        __set_PRIMASK(irqMask);
         break;
     }
 
