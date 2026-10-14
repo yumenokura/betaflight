@@ -111,6 +111,8 @@ typedef struct gyroDev_s {
     vector3_t gyroADC;                                       // gyro data after calibration and alignment
     int32_t gyroADCRawPrevious[XYZ_AXIS_COUNT];
     int16_t gyroADCRaw[XYZ_AXIS_COUNT];                      // raw data from sensor
+    // BMI270 DMA: completed gyro/accel sample, owned by CPU after RX callback.
+    int16_t bmi270DmaSample[6];
     int16_t temperature;
     mpuDetectionResult_t mpuDetectionResult;
     sensor_align_e gyroAlign;
