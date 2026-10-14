@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - '*-maintenance'
+      - bmi270-test
 
 jobs:
   ci:
