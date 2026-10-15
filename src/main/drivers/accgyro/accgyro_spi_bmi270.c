@@ -324,9 +324,9 @@ static void bmi270ExtiHandler(extiCallbackRec_t *cb)
     gyro->gyroSyncEXTI = gyro->gyroLastEXTI + gyro->gyroDmaMaxDuration;
     gyro->gyroLastEXTI = nowCycles;
 
-    if (gyro->gyroModeSPI == GYRO_EXTI_INT_DMA) {
-        spiSequence(dev, gyro->segments);
-    }
+    if (gyro->gyroModeSPI == GYRO_EXTI_INT_DMA && !spiIsBusy(dev)) {
+    spiSequence(dev, gyro->segments);
+}
 
     gyro->detectedEXTI++;
 
