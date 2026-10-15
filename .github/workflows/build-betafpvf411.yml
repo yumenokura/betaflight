@@ -8,6 +8,7 @@ on:
       - bmi270-test
     paths:
       - '.github/workflows/build-betafpvf411.yml'
+      - 'src/main/drivers/accgyro/accgyro_spi_bmi270.c'
 
 jobs:
   build:
