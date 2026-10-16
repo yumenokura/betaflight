@@ -352,10 +352,6 @@ static void bmi270ExtiHandler(extiCallbackRec_t *cb)
     gyro->detectedEXTI++;
 }
 
-    gyro->detectedEXTI++;
-
-}
-
 static void bmi270IntExtiInit(gyroDev_t *gyro)
 {
     if (gyro->mpuIntExtiTag == IO_TAG_NONE) {
