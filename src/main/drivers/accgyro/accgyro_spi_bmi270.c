@@ -306,6 +306,30 @@ static busStatus_e bmi270Intcallback(uintptr_t arg)
     gyro->bmi270DmaSample[3] = bmi270ReadS16(rx + 8);
     gyro->bmi270DmaSample[4] = bmi270ReadS16(rx + 10);
     gyro->bmi270DmaSample[5] = bmi270ReadS16(rx + 12);
+
+    // Capture the first abnormal gyro sample for SPI byte diagnostics.
+    static bool bmi270SpikeCaptured = false;
+
+    if (debugMode == DEBUG_BMI270_REGS && !bmi270SpikeCaptured) {
+        const int16_t gyroX = gyro->bmi270DmaSample[3];
+        const int16_t gyroZ = gyro->bmi270DmaSample[5];
+
+        if (gyroX > 1000 || gyroX < -1000 ||
+            gyroZ > 1000 || gyroZ < -1000) {
+
+            DEBUG_SET(DEBUG_BMI270_REGS, 0, rx[8]);
+            DEBUG_SET(DEBUG_BMI270_REGS, 1, rx[9]);
+            DEBUG_SET(DEBUG_BMI270_REGS, 2, rx[12]);
+            DEBUG_SET(DEBUG_BMI270_REGS, 3, rx[13]);
+
+            bmi270SpikeCaptured = true;
+        }
+    }
+
+    __DMB();
+    gyro->dataReady = true;
+
+    return BUS_READY;
     __DMB();
     gyro->dataReady = true;
 
