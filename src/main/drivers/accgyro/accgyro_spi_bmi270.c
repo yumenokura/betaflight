@@ -286,6 +286,13 @@ extiCallbackRec_t bmi270IntCallbackRec;
 /*
  * Gyro interrupt service routine
  */
+// Diagnostic counters, shown in units of 128 events to avoid fast overflow.
+// DEBUG_BMI270_REGS channels: EXTI, SPI starts, DMA completions, SPI busy skips.
+static volatile uint32_t bmi270ExtiCount;
+static volatile uint32_t bmi270SpiStarted;
+static volatile uint32_t bmi270DmaCompleted;
+static volatile uint32_t bmi270SpiBusySkipped;
+
 // Called in ISR context
 // Gyro read has just completed
 #ifdef USE_DMA
@@ -307,32 +314,9 @@ static busStatus_e bmi270Intcallback(uintptr_t arg)
     gyro->bmi270DmaSample[4] = bmi270ReadS16(rx + 10);
     gyro->bmi270DmaSample[5] = bmi270ReadS16(rx + 12);
 
-    // Capture the first abnormal gyro sample for SPI byte diagnostics.
-    static bool bmi270SpikeCaptured = false;
-
-    if (debugMode == DEBUG_BMI270_REGS && !bmi270SpikeCaptured) {
-        const int16_t gyroX = gyro->bmi270DmaSample[3];
-        const int16_t gyroZ = gyro->bmi270DmaSample[5];
-
-        if (gyroX > 1000 || gyroX < -1000 ||
-            gyroZ > 1000 || gyroZ < -1000) {
-
-            DEBUG_SET(DEBUG_BMI270_REGS, 0, rx[8]);
-            DEBUG_SET(DEBUG_BMI270_REGS, 1, rx[9]);
-            DEBUG_SET(DEBUG_BMI270_REGS, 2, rx[12]);
-            DEBUG_SET(DEBUG_BMI270_REGS, 3, rx[13]);
-
-            bmi270SpikeCaptured = true;
-        }
-    }
-
+    bmi270DmaCompleted++;
     __DMB();
     gyro->dataReady = true;
-
-    return BUS_READY;
-    __DMB();
-    gyro->dataReady = true;
-
     return BUS_READY;
 }
 #endif
@@ -348,8 +332,24 @@ static void bmi270ExtiHandler(extiCallbackRec_t *cb)
     gyro->gyroSyncEXTI = gyro->gyroLastEXTI + gyro->gyroDmaMaxDuration;
     gyro->gyroLastEXTI = nowCycles;
 
-    if (gyro->gyroModeSPI == GYRO_EXTI_INT_DMA && !spiIsBusy(dev)) {
-    spiSequence(dev, gyro->segments);
+    if (gyro->gyroModeSPI == GYRO_EXTI_INT_DMA) {
+        bmi270ExtiCount++;
+        if (!spiIsBusy(dev)) {
+            bmi270SpiStarted++;
+            spiSequence(dev, gyro->segments);
+        } else {
+            bmi270SpiBusySkipped++;
+        }
+
+        // Use scaled values: one displayed unit equals 128 events.
+        // These channels are intentionally not the previous spike-byte capture.
+        DEBUG_SET(DEBUG_BMI270_REGS, 0, (bmi270ExtiCount >> 7) & 0x7FFF);
+        DEBUG_SET(DEBUG_BMI270_REGS, 1, (bmi270SpiStarted >> 7) & 0x7FFF);
+        DEBUG_SET(DEBUG_BMI270_REGS, 2, (bmi270DmaCompleted >> 7) & 0x7FFF);
+        DEBUG_SET(DEBUG_BMI270_REGS, 3, (bmi270SpiBusySkipped >> 7) & 0x7FFF);
+    }
+
+    gyro->detectedEXTI++;
 }
 
     gyro->detectedEXTI++;
