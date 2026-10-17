@@ -311,9 +311,10 @@ static busStatus_e bmi270Intcallback(uintptr_t arg)
     gyro->bmi270DmaSample[5] = bmi270ReadS16(rx + 12);
 
     bmi270DmaCompleted++;
-    // Raw signed gyro samples as decoded directly from the completed DMA frame.
-    DEBUG_SET(DEBUG_BMI270_REGS, 0, gyro->bmi270DmaSample[3]);
-    DEBUG_SET(DEBUG_BMI270_REGS, 1, gyro->bmi270DmaSample[4]);
+    // Inspect Z gyro bytes from the completed DMA frame (Z is rx[12:13]).
+    // Ch0 = Z LSB (0..255), Ch1 = Z MSB (0..255), Ch2 = signed Z raw.
+    DEBUG_SET(DEBUG_BMI270_REGS, 0, rx[12]);
+    DEBUG_SET(DEBUG_BMI270_REGS, 1, rx[13]);
     DEBUG_SET(DEBUG_BMI270_REGS, 2, gyro->bmi270DmaSample[5]);
     __DMB();
     gyro->dataReady = true;
