@@ -265,10 +265,6 @@ static void bmi270Config(gyroDev_t *gyro)
 
     // Enable the gyro, accelerometer and temperature sensor - disable aux interface
     bmi270RegisterWrite(dev, BMI270_REG_PWR_CTRL, BMI270_VAL_PWR_CTRL, 1);
-    DEBUG_SET(DEBUG_BMI270_REGS, 0, bmi270RegisterRead(dev, BMI270_REG_PWR_CTRL));
-    DEBUG_SET(DEBUG_BMI270_REGS, 1, bmi270RegisterRead(dev, BMI270_REG_GYRO_CONF));
-    DEBUG_SET(DEBUG_BMI270_REGS, 2, bmi270RegisterRead(dev, BMI270_REG_GYRO_RANGE));
-    DEBUG_SET(DEBUG_BMI270_REGS, 3, bmi270RegisterRead(dev, BMI270_REG_INTERNAL_STATUS));
     // Flush the FIFO
     if (fifoMode) {
         bmi270RegisterWrite(dev, BMI270_REG_CMD, BMI270_VAL_CMD_FIFOFLUSH, 1);
@@ -315,6 +311,10 @@ static busStatus_e bmi270Intcallback(uintptr_t arg)
     gyro->bmi270DmaSample[5] = bmi270ReadS16(rx + 12);
 
     bmi270DmaCompleted++;
+    // Raw signed gyro samples as decoded directly from the completed DMA frame.
+    DEBUG_SET(DEBUG_BMI270_REGS, 0, gyro->bmi270DmaSample[3]);
+    DEBUG_SET(DEBUG_BMI270_REGS, 1, gyro->bmi270DmaSample[4]);
+    DEBUG_SET(DEBUG_BMI270_REGS, 2, gyro->bmi270DmaSample[5]);
     __DMB();
     gyro->dataReady = true;
     return BUS_READY;
@@ -341,12 +341,6 @@ static void bmi270ExtiHandler(extiCallbackRec_t *cb)
             bmi270SpiBusySkipped++;
         }
 
-        // Use scaled values: one displayed unit equals 128 events.
-        // These channels are intentionally not the previous spike-byte capture.
-        DEBUG_SET(DEBUG_BMI270_REGS, 0, (bmi270ExtiCount >> 7) & 0x7FFF);
-        DEBUG_SET(DEBUG_BMI270_REGS, 1, (bmi270SpiStarted >> 7) & 0x7FFF);
-        DEBUG_SET(DEBUG_BMI270_REGS, 2, (bmi270DmaCompleted >> 7) & 0x7FFF);
-        DEBUG_SET(DEBUG_BMI270_REGS, 3, (bmi270SpiBusySkipped >> 7) & 0x7FFF);
     }
 
     gyro->detectedEXTI++;
@@ -487,6 +481,7 @@ static bool bmi270GyroReadRegister(gyroDev_t *gyro)
         gyro->gyroADCRaw[X] = gyro->bmi270DmaSample[3];
         gyro->gyroADCRaw[Y] = gyro->bmi270DmaSample[4];
         gyro->gyroADCRaw[Z] = gyro->bmi270DmaSample[5];
+        DEBUG_SET(DEBUG_BMI270_REGS, 3, gyro->gyroADCRaw[X]);
         __set_PRIMASK(irqMask);
         break;
     }
