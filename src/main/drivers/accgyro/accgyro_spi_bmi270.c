@@ -466,16 +466,17 @@ static bool bmi270GyroReadRegister(gyroDev_t *gyro)
         // Wait for completion
         spiWait(dev);
 
-        // DIAGNOSTIC: gyro frame starts at GYR_DATA_X_LSB.
-        // Ch0/1: Z low/high bytes; Ch2: signed Z; Ch3: signed X.
+        // DIAGNOSTIC: inspect the first four SPI RX bytes in polled mode.
+        // Ch0 = RX[0] (command phase), Ch1 = RX[1] (BMI270 dummy byte),
+        // Ch2 = RX[2] (gyro X LSB), Ch3 = RX[3] (gyro X MSB).
         const uint8_t *rx = dev->rxBuf;
         gyro->gyroADCRaw[X] = bmi270ReadS16(rx + 2);
         gyro->gyroADCRaw[Y] = bmi270ReadS16(rx + 4);
         gyro->gyroADCRaw[Z] = bmi270ReadS16(rx + 6);
-        DEBUG_SET(DEBUG_BMI270_REGS, 0, rx[6]);
-        DEBUG_SET(DEBUG_BMI270_REGS, 1, rx[7]);
-        DEBUG_SET(DEBUG_BMI270_REGS, 2, gyro->gyroADCRaw[Z]);
-        DEBUG_SET(DEBUG_BMI270_REGS, 3, gyro->gyroADCRaw[X]);
+        DEBUG_SET(DEBUG_BMI270_REGS, 0, rx[0]);
+        DEBUG_SET(DEBUG_BMI270_REGS, 1, rx[1]);
+        DEBUG_SET(DEBUG_BMI270_REGS, 2, rx[2]);
+        DEBUG_SET(DEBUG_BMI270_REGS, 3, rx[3]);
 
         break;
     }
