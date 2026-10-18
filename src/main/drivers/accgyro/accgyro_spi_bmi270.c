@@ -383,8 +383,12 @@ static bool bmi270AccRead(accDev_t *acc)
         // Wait for completion
         spiWait(&acc->gyro->dev);
 
-        // Fall through
-        FALLTHROUGH;
+        // DIAGNOSTIC: polled accelerometer frame, not the stale DMA snapshot.
+        const uint8_t *rx = dev->rxBuf;
+        acc->ADCRaw[X] = bmi270ReadS16(rx + 2);
+        acc->ADCRaw[Y] = bmi270ReadS16(rx + 4);
+        acc->ADCRaw[Z] = bmi270ReadS16(rx + 6);
+        break;
     }
 
     case GYRO_EXTI_INT_DMA:
@@ -410,7 +414,6 @@ static bool bmi270AccRead(accDev_t *acc)
 static bool bmi270GyroReadRegister(gyroDev_t *gyro)
 {
     extDevice_t *dev = &gyro->dev;
-    int16_t *gyroData = (int16_t *)dev->rxBuf;
 
     switch (gyro->gyroModeSPI) {
     case GYRO_EXTI_INIT:
@@ -425,7 +428,7 @@ static bool bmi270GyroReadRegister(gyroDev_t *gyro)
         // Using DMA for gyro access upsets the scheduler on the F4
         if (gyro->detectedEXTI > GYRO_EXTI_DETECT_THRESHOLD) {
 #ifdef USE_DMA
-            if (spiUseDMA(dev)) {
+            if (false) { // DIAGNOSTIC: force polled gyro read path; do not enable EXTI DMA mode
                 dev->callbackArg = (uintptr_t)gyro;
                 dev->txBuf[0] = BMI270_REG_ACC_DATA_X_LSB | 0x80;
                 gyro->segments[0].len = 14;
@@ -463,9 +466,16 @@ static bool bmi270GyroReadRegister(gyroDev_t *gyro)
         // Wait for completion
         spiWait(dev);
 
-        gyro->gyroADCRaw[X] = gyroData[1];
-        gyro->gyroADCRaw[Y] = gyroData[2];
-        gyro->gyroADCRaw[Z] = gyroData[3];
+        // DIAGNOSTIC: gyro frame starts at GYR_DATA_X_LSB.
+        // Ch0/1: Z low/high bytes; Ch2: signed Z; Ch3: signed X.
+        const uint8_t *rx = dev->rxBuf;
+        gyro->gyroADCRaw[X] = bmi270ReadS16(rx + 2);
+        gyro->gyroADCRaw[Y] = bmi270ReadS16(rx + 4);
+        gyro->gyroADCRaw[Z] = bmi270ReadS16(rx + 6);
+        DEBUG_SET(DEBUG_BMI270_REGS, 0, rx[6]);
+        DEBUG_SET(DEBUG_BMI270_REGS, 1, rx[7]);
+        DEBUG_SET(DEBUG_BMI270_REGS, 2, gyro->gyroADCRaw[Z]);
+        DEBUG_SET(DEBUG_BMI270_REGS, 3, gyro->gyroADCRaw[X]);
 
         break;
     }
