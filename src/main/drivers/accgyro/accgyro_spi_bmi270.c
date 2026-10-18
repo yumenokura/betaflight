@@ -466,17 +466,32 @@ static bool bmi270GyroReadRegister(gyroDev_t *gyro)
         // Wait for completion
         spiWait(dev);
 
-        // DIAGNOSTIC: inspect the first four SPI RX bytes in polled mode.
-        // Ch0 = RX[0] (command phase), Ch1 = RX[1] (BMI270 dummy byte),
-        // Ch2 = RX[2] (gyro X LSB), Ch3 = RX[3] (gyro X MSB).
+        // DIAGNOSTIC: latch all three gyro high bytes from ONE SPI frame.
+        // Trigger on the first raw gyro sample with magnitude > 1000 counts.
+        // Ch0 = X MSB, Ch1 = Y MSB, Ch2 = Z MSB (all unsigned 0..255).
+        // Ch3 = triggering axis: 1=X, 2=Y, 3=Z; 0 means not captured.
         const uint8_t *rx = dev->rxBuf;
         gyro->gyroADCRaw[X] = bmi270ReadS16(rx + 2);
         gyro->gyroADCRaw[Y] = bmi270ReadS16(rx + 4);
         gyro->gyroADCRaw[Z] = bmi270ReadS16(rx + 6);
-        DEBUG_SET(DEBUG_BMI270_REGS, 0, rx[0]);
-        DEBUG_SET(DEBUG_BMI270_REGS, 1, rx[1]);
-        DEBUG_SET(DEBUG_BMI270_REGS, 2, rx[2]);
-        DEBUG_SET(DEBUG_BMI270_REGS, 3, rx[3]);
+        static bool gyroHighByteCaptured = false;
+        if (!gyroHighByteCaptured && debugMode == DEBUG_BMI270_REGS) {
+            uint8_t triggerAxis = 0;
+            if (gyro->gyroADCRaw[X] > 1000 || gyro->gyroADCRaw[X] < -1000) {
+                triggerAxis = 1;
+            } else if (gyro->gyroADCRaw[Y] > 1000 || gyro->gyroADCRaw[Y] < -1000) {
+                triggerAxis = 2;
+            } else if (gyro->gyroADCRaw[Z] > 1000 || gyro->gyroADCRaw[Z] < -1000) {
+                triggerAxis = 3;
+            }
+            if (triggerAxis != 0) {
+                DEBUG_SET(DEBUG_BMI270_REGS, 0, rx[3]);
+                DEBUG_SET(DEBUG_BMI270_REGS, 1, rx[5]);
+                DEBUG_SET(DEBUG_BMI270_REGS, 2, rx[7]);
+                DEBUG_SET(DEBUG_BMI270_REGS, 3, triggerAxis);
+                gyroHighByteCaptured = true;
+            }
+        }
 
         break;
     }
@@ -493,7 +508,6 @@ static bool bmi270GyroReadRegister(gyroDev_t *gyro)
         gyro->gyroADCRaw[X] = gyro->bmi270DmaSample[3];
         gyro->gyroADCRaw[Y] = gyro->bmi270DmaSample[4];
         gyro->gyroADCRaw[Z] = gyro->bmi270DmaSample[5];
-        DEBUG_SET(DEBUG_BMI270_REGS, 3, gyro->gyroADCRaw[X]);
         __set_PRIMASK(irqMask);
         break;
     }
