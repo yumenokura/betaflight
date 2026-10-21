@@ -41,8 +41,8 @@
 
 #include "sensors/gyro.h"
 
-// 2 MHz max SPI frequency
-#define BMI270_MAX_SPI_CLK_HZ 2000000
+// 4 MHz max SPI frequency
+#define BMI270_MAX_SPI_CLK_HZ 4000000
 
 #define BMI270_FIFO_FRAME_SIZE 6
 
