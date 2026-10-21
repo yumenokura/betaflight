@@ -28,7 +28,6 @@
 #ifdef USE_ACCGYRO_BMI270
 
 #include "drivers/accgyro/accgyro.h"
-#include "build/debug.h"
 #include "drivers/accgyro/accgyro_spi_bmi270.h"
 #include "drivers/bus_spi.h"
 #include "drivers/exti.h"
@@ -282,13 +281,6 @@ extiCallbackRec_t bmi270IntCallbackRec;
 /*
  * Gyro interrupt service routine
  */
-// Diagnostic counters, shown in units of 128 events to avoid fast overflow.
-// DEBUG_BMI270_REGS channels: EXTI, SPI starts, DMA completions, SPI busy skips.
-static volatile uint32_t bmi270ExtiCount;
-static volatile uint32_t bmi270SpiStarted;
-static volatile uint32_t bmi270DmaCompleted;
-static volatile uint32_t bmi270SpiBusySkipped;
-
 // Called in ISR context
 // Gyro read has just completed
 #ifdef USE_DMA
@@ -310,12 +302,6 @@ static busStatus_e bmi270Intcallback(uintptr_t arg)
     gyro->bmi270DmaSample[4] = bmi270ReadS16(rx + 10);
     gyro->bmi270DmaSample[5] = bmi270ReadS16(rx + 12);
 
-    bmi270DmaCompleted++;
-    // Inspect Z gyro bytes from the completed DMA frame (Z is rx[12:13]).
-    // Ch0 = Z LSB (0..255), Ch1 = Z MSB (0..255), Ch2 = signed Z raw.
-    DEBUG_SET(DEBUG_BMI270_REGS, 0, rx[12]);
-    DEBUG_SET(DEBUG_BMI270_REGS, 1, rx[13]);
-    DEBUG_SET(DEBUG_BMI270_REGS, 2, gyro->bmi270DmaSample[5]);
     __DMB();
     gyro->dataReady = true;
     return BUS_READY;
@@ -334,14 +320,9 @@ static void bmi270ExtiHandler(extiCallbackRec_t *cb)
     gyro->gyroLastEXTI = nowCycles;
 
     if (gyro->gyroModeSPI == GYRO_EXTI_INT_DMA) {
-        bmi270ExtiCount++;
         if (!spiIsBusy(dev)) {
-            bmi270SpiStarted++;
             spiSequence(dev, gyro->segments);
-        } else {
-            bmi270SpiBusySkipped++;
         }
-
     }
 
     gyro->detectedEXTI++;
@@ -383,7 +364,6 @@ static bool bmi270AccRead(accDev_t *acc)
         // Wait for completion
         spiWait(&acc->gyro->dev);
 
-        // DIAGNOSTIC: polled accelerometer frame, not the stale DMA snapshot.
         const uint8_t *rx = dev->rxBuf;
         acc->ADCRaw[X] = bmi270ReadS16(rx + 2);
         acc->ADCRaw[Y] = bmi270ReadS16(rx + 4);
@@ -465,32 +445,10 @@ static bool bmi270GyroReadRegister(gyroDev_t *gyro)
         // Wait for completion
         spiWait(dev);
 
-        // DIAGNOSTIC: latch all three gyro high bytes from ONE SPI frame.
-        // Trigger on the first raw gyro sample with magnitude > 1000 counts.
-        // Ch0 = X MSB, Ch1 = Y MSB, Ch2 = Z MSB (all unsigned 0..255).
-        // Ch3 = triggering axis: 1=X, 2=Y, 3=Z; 0 means not captured.
         const uint8_t *rx = dev->rxBuf;
         gyro->gyroADCRaw[X] = bmi270ReadS16(rx + 2);
         gyro->gyroADCRaw[Y] = bmi270ReadS16(rx + 4);
         gyro->gyroADCRaw[Z] = bmi270ReadS16(rx + 6);
-        static bool gyroHighByteCaptured = false;
-        if (!gyroHighByteCaptured && debugMode == DEBUG_BMI270_REGS) {
-            uint8_t triggerAxis = 0;
-            if (gyro->gyroADCRaw[X] > 1000 || gyro->gyroADCRaw[X] < -1000) {
-                triggerAxis = 1;
-            } else if (gyro->gyroADCRaw[Y] > 1000 || gyro->gyroADCRaw[Y] < -1000) {
-                triggerAxis = 2;
-            } else if (gyro->gyroADCRaw[Z] > 1000 || gyro->gyroADCRaw[Z] < -1000) {
-                triggerAxis = 3;
-            }
-            if (triggerAxis != 0) {
-                DEBUG_SET(DEBUG_BMI270_REGS, 0, rx[3]);
-                DEBUG_SET(DEBUG_BMI270_REGS, 1, rx[5]);
-                DEBUG_SET(DEBUG_BMI270_REGS, 2, rx[7]);
-                DEBUG_SET(DEBUG_BMI270_REGS, 3, triggerAxis);
-                gyroHighByteCaptured = true;
-            }
-        }
 
         break;
     }
